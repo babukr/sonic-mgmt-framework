@@ -70,7 +70,7 @@ func Test_sFlowOperations(t *testing.T) {
         // Set collector port
         portUrl := url + "/collector_port"
 	t.Run("Set sFlow collector col1 port", processSetRequest(portUrl, colPortJson, "PATCH", false))
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
         // Verify collector configurations
 	t.Run("Verify_sFlow_collector", processGetRequest(url, col1ModJson, false))
