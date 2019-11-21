@@ -48,7 +48,7 @@ func Test_sFlowOperations(t *testing.T) {
 
         //Set AgentID
         agentUrl := url + "/agent_id"
-	t.Run("Set sFlow polling interval", processSetRequest(agentUrl, agentIdJson, "PATCH", false))
+	t.Run("Set sFlow agent ID", processSetRequest(agentUrl, agentIdJson, "PATCH", false))
 	time.Sleep(1 * time.Second)
 
         // Verify global configurations
