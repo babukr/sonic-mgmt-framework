@@ -52,7 +52,7 @@ func Test_sFlowOperations(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
         // Verify global configurations
-	t.Run("Verify_sFlow_admin_state", processGetRequest(url, globalConfigGetJsonResp, false))
+	t.Run("Verify global configurations", processGetRequest(url, globalConfigGetJsonResp, false))
 
         //Add collector
         url = "/sonic-sflow:sonic-sflow/SFLOW_COLLECTOR/SFLOW_COLLECTOR_LIST[collector_name=col1]"
@@ -108,7 +108,7 @@ func clearsFlowDataFromDb() error {
 var globalAdminJson string = "{\"sonic-sflow:admin_state\": \"up\"}"
 var pollingJson string = "{\"sonic-sflow:polling_interval\": 10}"
 var agentIdJson string = "{\"sonic-sflow:agent_id\": \"Ethernet0\"}"
-var globalConfigGetJsonResp string = "{\"sonic-sflow:SFLOW_LIST\":[{\"admin_state\":\"down\",\"agent_id\":\"Ethernet0\",\"polling_interval\":10,\"sflow_key\":\"global\"}]}"
+var globalConfigGetJsonResp string = "{\"sonic-sflow:SFLOW_LIST\":[{\"admin_state\":\"up\",\"agent_id\":\"Ethernet0\",\"polling_interval\":10,\"sflow_key\":\"global\"}]}"
 
 var col1Json string = "{\"sonic-sflow:SFLOW_COLLECTOR_LIST\":[{\"collector_ip\":\"1.1.1.1\",\"collector_name\":\"col1\",\"collector_port\":4444}]}"
 var col1ModJson string = "{\"sonic-sflow:SFLOW_COLLECTOR_LIST\":[{\"collector_ip\":\"2.2.2.2\",\"collector_name\":\"col1\",\"collector_port\":1234}]}"
