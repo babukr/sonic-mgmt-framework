@@ -32,7 +32,7 @@ def invoke_api(func, args):
     api = cc.ApiClient()
 
     # Set/Get aaa configuration
-    body = { "openconfig-system-ext:failthrough": False, "openconfig-system-ext:authentication-method": 'None' }
+    body = { "openconfig-system-ext:failthrough": False, "openconfig-system-ext:authentication-method": ['local'] }
     failthrough='None'
     authmethod=[]
 
