@@ -22,6 +22,10 @@ module sonic-interface {
         prefix spc;
     }
 
+    import sonic-vlan {
+        prefix svlan;
+    }
+
     import sonic-common {
         prefix cmn;
     }
@@ -84,6 +88,13 @@ module sonic-interface {
             }
         }
 
+        typedef ipv6_mode {
+            type enumeration {
+                enum enable;
+                enum disable;
+            }
+        }
+
 	container sonic-interface {
 
 		container INTERFACE {
@@ -108,6 +119,29 @@ module sonic-interface {
                                         range "0..3";
                                     }
                                 }
+
+				leaf ipv6_use_link_local_only {
+                                    type ipv6_mode;
+                                    default disable; 
+                                    description
+                                        "Enable/Disable IPv6 on interface";
+                                    must "count(/spc:sonic-portchannel/spc:PORTCHANNEL_MEMBER/spc:PORTCHANNEL_MEMBER_LIST[spc:ifname=current()/../portname]) = 0"
+                                    {
+                                        error-message "Interface configured as a member of PortChannel. Cannot enable IPv6";
+                                        error-app-tag intf-po-member;
+                                    }
+                                    must "count(/svlan:sonic-vlan/svlan:VLAN_MEMBER/svlan:VLAN_MEMBER_LIST[svlan:ifname=current()/../portname]) = 0"
+                                    {
+                                        error-message "Interface configured as a member of Vlan. Cannot enable IPv6";
+                                        error-app-tag intf-po-member;
+                                    }
+
+                                    must "count(current()/../vrf_name) = 0"
+                                    {
+                                        error-message "Non default VRF binded to interface. Cannot enable IPv6";
+                                        error-app-tag intf-non-def-vrf;
+                                    }
+				}
 
                 leaf unnumbered {
                     must "((/cmn:operation/cmn:operation != 'CREATE') and (/cmn:operation/cmn:operation != 'UPDATE')) or " +

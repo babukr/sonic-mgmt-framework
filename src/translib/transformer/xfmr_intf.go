@@ -21,6 +21,8 @@ package transformer
 import (
     "errors"
     "strings"
+    "reflect"
+    "sort"
     "strconv"
     "regexp"
     "net"
@@ -51,6 +53,8 @@ func init () {
     XlateFuncBind("YangToDb_intf_eth_port_config_xfmr", YangToDb_intf_eth_port_config_xfmr)
     XlateFuncBind("YangToDb_intf_ip_addr_xfmr", YangToDb_intf_ip_addr_xfmr)
     XlateFuncBind("DbToYang_intf_ip_addr_xfmr", DbToYang_intf_ip_addr_xfmr)
+    XlateFuncBind("YangToDb_ipv6_enabled_xfmr", YangToDb_ipv6_enabled_xfmr)
+    //XlateFuncBind("DbToYang_ipv6_enabled_xfmr", DbToYang_ipv6_enabled_xfmr)
     XlateFuncBind("YangToDb_intf_subintfs_xfmr", YangToDb_intf_subintfs_xfmr)
     XlateFuncBind("DbToYang_intf_subintfs_xfmr", DbToYang_intf_subintfs_xfmr)
     XlateFuncBind("DbToYang_intf_get_counters_xfmr", DbToYang_intf_get_counters_xfmr)
@@ -63,6 +67,7 @@ func init () {
     XlateFuncBind("YangToDb_intf_sag_ip_xfmr", YangToDb_intf_sag_ip_xfmr)
     XlateFuncBind("DbToYang_intf_sag_ip_xfmr", DbToYang_intf_sag_ip_xfmr)
     XlateFuncBind("rpc_clear_counters", rpc_clear_counters)
+    XlateFuncBind("interfaces_post_xfmr", interfaces_post_xfmr)
 }
 
 const (
@@ -183,6 +188,37 @@ const (
     IntfSubTypeVlanL2  E_InterfaceSubType = 1
     InterfaceSubTypeVlanL3  E_InterfaceSubType = 2
 )
+
+var interfaces_post_xfmr PostXfmrFunc = func(inParams XfmrParams) (map[string]map[string]db.Value, error) {
+    log.Info("--------------------post_xfmr------------------------")
+    log.Info("--------------------inParams.oper------------", inParams.oper)
+    log.Info("--------------------inParams.requestUri------------", inParams.requestUri)
+    requestUriPath, _ := getYangPathFromUri(inParams.requestUri)
+    log.Info("--------------------inParams.requestUri------------", requestUriPath)
+    ///openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/openconfig-if-ip:ipv6/config/enabled
+    if inParams.oper == DELETE && requestUriPath == "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/openconfig-if-ip:ipv6/config/enabled" {
+        log.Info("---------inParams.subOpDataMap---4---", inParams.subOpDataMap[4])
+        log.Info("---------inParams.subOpDataMap--", inParams.subOpDataMap)
+        m := make(map[string]map[string]db.Value)
+        (*inParams.subOpDataMap[4])[db.ConfigDB] = m
+        if len(inParams.subOpDataMap) > 0 {
+            for op, data := range inParams.subOpDataMap {
+                log.Info("--------------------op-------data---", op, data)
+                if len(*data) > 0 {
+                        for dbType, dbData := range (*data) {
+                                //if len(dbData) > 0 {
+                            log.Info("----------dbType, dbData--------", dbType, dbData)
+                //resultMap[op][dbType] = make(map[string]map[string]db.Value)
+                        }
+            //mapCopy(resultMap[op][dbType], (*subOpDataMap[op])[dbType])
+                }
+            }
+        }
+    }
+    log.Info("---------inParams.subOpDataMap---4--after---", inParams.subOpDataMap[4])
+    log.Info("---------inParams.subOpDataMap---5", inParams.subOpDataMap[5])
+    return (*inParams.dbDataMap)[db.ConfigDB], nil
+}
 
 func getIntfTypeByName (name string) (E_InterfaceType, E_InterfaceSubType, error) {
 
@@ -497,12 +533,16 @@ var intf_table_xfmr TableXfmrFunc = func (inParams XfmrParams) ([]string, error)
     } else if strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/ipv4/addresses/address/config") ||
         strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/openconfig-if-ip:ipv4/addresses/address/config") ||
         strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/openconfig-if-ip:ipv6/addresses/address/config") ||
-        strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/ipv6/addresses/address/config") {
+        strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/ipv6/addresses/address/config") ||
+        strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/ipv6/config") ||
+        strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/openconfig-if-ip:ipv6/config") {
         tblList = append(tblList, intTbl.cfgDb.intfTN)
     } else if strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/ipv4/addresses/address/state") ||
         strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/openconfig-if-ip:ipv4/addresses/address/state") ||
         strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/openconfig-if-ip:ipv6/addresses/address/state") ||
-        strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/ipv6/addresses/address/state") {
+        strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/ipv6/addresses/address/state") ||
+        strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/ipv6/state") ||
+        strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/openconfig-if-ip:ipv6/state") {
         tblList = append(tblList, intTbl.appDb.intfTN)
     } else if strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/ipv4/addresses") ||
         strings.HasPrefix(targetUriPath, "/openconfig-interfaces:interfaces/interface/subinterfaces/subinterface/openconfig-if-ip:ipv4/addresses") ||
@@ -802,7 +842,7 @@ var DbToYang_intf_eth_auto_neg_xfmr FieldXfmrDbtoYang = func(inParams XfmrParams
         return result, errors.New("Invalid interface type IntfTypeUnset");
     }
     if IntfTypeVxlan == intfType {
-	    return result, nil	
+	    return result, nil
     }
     intTbl := IntfTypeTblMap[intfType]
 
@@ -1475,8 +1515,10 @@ func getIntfIpByName(dbCl *db.DB, tblName string, ifName string, ipv4 bool, ipv6
     }
     log.Info("Updating Interface IP Info from DB to Internal DS for Interface Name : ", ifName)
 
-    keys,_ := doGetAllIpKeys(dbCl, &db.TableSpec{Name:tblName})
-
+    keys,err := doGetAllIpKeys(dbCl, &db.TableSpec{Name:tblName})
+    if( err != nil) {
+        log.Info("-------err---", err)
+    }
     for _, key := range keys {
         if len(key.Comp) < 2 {
             continue
@@ -1636,9 +1678,8 @@ func validIP(ip net.IP) bool {
 
 /* Get all keys for given interface tables */
 func doGetAllIpKeys(d *db.DB, dbSpec *db.TableSpec) ([]db.Key, error) {
-
+    log.Info("Inside doGetAllIpKeys....")
     var keys []db.Key
-
     intfTable, err := d.GetTable(dbSpec)
     if err != nil {
         return keys, err
@@ -2729,3 +2770,250 @@ var DbToYang_intf_sag_ip_xfmr SubTreeXfmrDbToYang = func(inParams XfmrParams) (e
 
 	return err
 }
+
+
+var YangToDb_ipv6_enabled_xfmr FieldXfmrYangToDb = func(inParams XfmrParams) (map[string]string, error) {
+    var err error
+    res_map := make(map[string]string)
+    intfsObj := getIntfsRoot(inParams.ygRoot)
+    if intfsObj == nil || len(intfsObj.Interface) < 1 {
+        log.Info("YangToDb_ipv6_enabled_xfmr: IntfsObj/interface list is empty.")
+        return res_map, errors.New("IntfsObj/Interface is not specified")
+    }
+    pathInfo := NewPathInfo(inParams.uri)
+    ifName := pathInfo.Var("name");
+
+    if ifName == "" {
+        errStr := "Interface KEY not present"
+        log.Info("YangToDb_ipv6_enabled_xfmr: " + errStr)
+        return res_map, errors.New(errStr)
+    }
+
+    if _, ok := intfsObj.Interface[ifName]; !ok {
+        errStr := "Interface entry not found in Ygot tree, ifname: " + ifName
+        log.Info("YangToDb_ipv6_enabled_xfmr : " + errStr)
+        return res_map, errors.New(errStr)
+    }
+
+    intfObj := intfsObj.Interface[ifName]
+
+    if intfObj.Subinterfaces == nil || len(intfObj.Subinterfaces.Subinterface) < 1 {
+        errStr := "SubInterface node is not set"
+        log.Info("YangToDb_ipv6_enabled_xfmr : " + errStr)
+        return res_map, errors.New(errStr)
+    }
+    if _, ok := intfObj.Subinterfaces.Subinterface[0]; !ok {
+        errStr := "YangToDb_ipv6_enabled_xfmr : "
+        log.Info(errStr)
+        return res_map, err
+    }
+
+    intfType, _, _ := getIntfTypeByName(ifName)
+    intTbl := IntfTypeTblMap[intfType]
+    if IntfTypeVxlan == intfType {
+	    return res_map, nil
+    }
+    tblName := intTbl.cfgDb.intfTN
+    subIntfObj := intfObj.Subinterfaces.Subinterface[0]
+    log.Info("----------subIntfObj:=", subIntfObj)
+    //-------------------------------------------
+    ipv6Map, _ := getIntfIpByName(inParams.d, intTbl.cfgDb.intfTN, ifName, false, true, "")
+    log.Info("----------------ipv6Map-------------", ipv6Map)
+    ipv4Map, _ := getIntfIpByName(inParams.d, intTbl.cfgDb.intfTN, ifName, true, false, "")
+    log.Info("----------------ipv4Map-------------", ipv4Map)
+    var enStr string
+    log.Info("---------------inParams.oper--------------", inParams.oper)
+    subOpMap := make(map[db.DBNum]map[string]map[string]db.Value)
+    subOpTblMap := make(map[string]map[string]db.Value)
+    field_map := make(map[string]db.Value)
+    res_values := db.Value{Field: map[string]string{}}
+    switch inParams.oper {
+        case CREATE:
+            fallthrough
+        case REPLACE:
+            fallthrough
+        case UPDATE:
+            fallthrough
+        case DELETE: // Since the leaf has default value, the xfmr converts DELETE to UPDATE operation
+            enabled, _ := inParams.param.(*bool)
+            log.Info("---------Inside Update----enabled----", *enabled)
+            if *enabled == true {
+                enStr = "enable"
+            } else {
+                enStr = "disable"
+            }
+
+            res_map["ipv6_use_link_local_only"] = enStr
+
+            /* If disabling and no other interface attributes/ip configured, delete interface from interface table else 
+            delelte ipv6_use_link_local_only field */
+            if enStr == "disable" && len(ipv6Map) ==  0 {
+                mode, err := inParams.d.GetMap(&db.TableSpec{Name:intTbl.cfgDb.intfTN+"|"+ifName}, "ipv6_use_link_local_only")
+                log.Info("-----------check if no entry-------------", mode, err)
+                if mode == "" || err != nil {
+                    return nil, errors.New("Entry ipv6_use_link_local_only does not exist")
+                }
+                IntfMapObj, err := inParams.d.GetMapAll(&db.TableSpec{Name:tblName+"|"+ifName})
+                if err != nil {
+                    return nil, errors.New("Entry "+tblName+"|"+ifName+" missing from ConfigDB")
+                }
+                IntfMap := IntfMapObj.Field
+                if len(ipv4Map) >  0 {
+                    if _, ok := IntfMap["NULL"]; !ok {
+                        log.Info("-----------NULL NULL entry does not exist ---------")
+                        return res_map, nil
+                    }
+                }
+                keys := []string{}
+                for k, _ := range IntfMap {
+                    keys = append(keys, k)
+                }
+                check_keys :=  []string{"NULL", "ipv6_use_link_local_only"}
+                sort.Sort(sort.StringSlice(keys))
+                if reflect.DeepEqual(keys, check_keys) {
+                    if reflect.DeepEqual(keys, check_keys) {
+                        log.Info("---------delete interface from interface table--------------")
+                        subOpTblMap[tblName] = field_map  //field_map will be empty 
+                        subOpMap[db.ConfigDB] = subOpTblMap
+                        log.Info("--------------subOpMap-----------", subOpMap)
+                        inParams.subOpDataMap[DELETE] = &subOpMap
+                        return nil, nil
+                    }
+                    return res_map, nil //Just Update
+                }
+                log.Info("Deleting ipv6_use_link_local_only entry ... if this is only entry delete interface from tbl................")
+                (&res_values).Set("ipv6_use_link_local_only", enStr)
+                field_map[ifName] = res_values
+                subOpTblMap[intTbl.cfgDb.intfTN] = field_map
+                subOpMap[db.ConfigDB] = subOpTblMap
+                log.Info("--------------subOpMap-----------", subOpMap)
+                inParams.subOpDataMap[DELETE] = &subOpMap
+                return nil, nil
+            }
+            log.Info("------------en_str1-------------", enStr, err)
+    }
+    return res_map, nil
+}
+
+/*
+var YangToDb_ipv6_enabled_xfmr SubTreeXfmrYangToDb = func(inParams XfmrParams) (map[string]map[string]db.Value, error) {
+    var err error
+    //res_map := make(map[string]string)
+    subOpMap := make(map[db.DBNum]map[string]map[string]db.Value)
+    subOpTblMap := make(map[string]map[string]db.Value)
+    field_map := make(map[string]db.Value)
+    res_values := db.Value{Field: map[string]string{}}
+
+    intfsObj := getIntfsRoot(inParams.ygRoot)
+    if intfsObj == nil || len(intfsObj.Interface) < 1 {
+        log.Info("YangToDb_ipv6_enabled_xfmr: IntfsObj/interface list is empty.")
+        return nil, errors.New("IntfsObj/Interface is not specified")
+    }
+    pathInfo := NewPathInfo(inParams.uri)
+    ifName := pathInfo.Var("name");
+
+    if ifName == "" {
+        errStr := "Interface KEY not present"
+        log.Info("YangToDb_ipv6_enabled_xfmr: " + errStr)
+        return nil, errors.New(errStr)
+    }
+
+    if _, ok := intfsObj.Interface[ifName]; !ok {
+        errStr := "Interface entry not found in Ygot tree, ifname: " + ifName
+        log.Info("YangToDb_ipv6_enabled_xfmr : " + errStr)
+        return nil, errors.New(errStr)
+    }
+
+    intfObj := intfsObj.Interface[ifName]
+
+    if intfObj.Subinterfaces == nil || len(intfObj.Subinterfaces.Subinterface) < 1 {
+        errStr := "SubInterface node is not set"
+        log.Info("YangToDb_ipv6_enabled_xfmr : " + errStr)
+        return nil, errors.New(errStr)
+    }
+    if _, ok := intfObj.Subinterfaces.Subinterface[0]; !ok {
+        errStr := "YangToDb_ipv6_enabled_xfmr : "
+        log.Info(errStr)
+        return nil, err
+    }
+
+    intfType, _, _ := getIntfTypeByName(ifName)
+    intTbl := IntfTypeTblMap[intfType]
+    if IntfTypeVxlan == intfType {
+	    return nil, nil
+    }
+    tblName := intTbl.cfgDb.intfTN
+    subIntfObj := intfObj.Subinterfaces.Subinterface[0]
+    log.Info("----------subIntfObj:=", subIntfObj)
+    //-------------------------------------------
+    ipv6Map, _ := getIntfIpByName(inParams.d, intTbl.cfgDb.intfTN, ifName, false, true, "")
+    log.Info("----------------ipv6Map-------------", ipv6Map)
+    ipv4Map, _ := getIntfIpByName(inParams.d, intTbl.cfgDb.intfTN, ifName, true, false, "")
+    log.Info("----------------ipv4Map-------------", ipv4Map)
+    var enStr string
+    log.Info("---------------inParams.oper--------------", inParams.oper)
+    switch inParams.oper {
+        case CREATE:
+            fallthrough
+        case UPDATE:
+            log.Info("-------------Update case-------------------")
+            enabled, _ := inParams.param.(*bool)
+            log.Info("---------Inside Update----enabled----", *enabled)
+            if *enabled == true {
+                enStr = "enable"
+            } else {
+                enStr = "disable"
+            }
+            fallthrough
+        case DELETE: // Since the leaf has default value, the xfmr converts DELETE to UPDATE operation
+            log.Info("------------en_str1-------------", enStr, err)
+            (&res_values).Set("ipv6_use_link_local_only", enStr)
+            field_map[ifName] = res_values
+            subOpTblMap[tblName] = field_map
+
+            if enStr == "disable" && len(ipv6Map) ==  0 {
+                mode, err := inParams.d.GetMap(&db.TableSpec{Name:tblName+"|"+ifName}, "ipv6_use_link_local_only")
+                if mode == "" || err != nil {
+                    return nil, errors.New("Entry ipv6_use_link_local_only does not exist")
+                }
+                //Prevent deletion IPv4 entries existing and NULL field not present
+                if len(ipv4Map) >  0 {
+                    if _, ok := ipv4Map["NULL"]; !ok {
+                        log.Info("-----------NULL NULL entry does not exist ---------")
+                        return subOpTblMap, nil
+                    }
+                }
+                IntfMapObj, err := inParams.d.GetMapAll(&db.TableSpec{Name:tblName+"|"+ifName})
+                if err != nil {
+                    return nil, errors.New("Entry "+tblName+"|"+ifName+" missing from ConfigDB")
+                }
+                IntfMap := IntfMapObj.Field
+                if len(IntfMap) > 1 {
+                    keys := []string{}
+                    for k, _ := range IntfMap {
+                        keys = append(keys, k)
+                    }
+                    log.Info("--------------keys----------", keys)
+                    check_keys :=  []string{"NULL", "ipv6_use_link_local_only"}
+                    sort.Sort(sort.StringSlice(keys))
+                    if reflect.DeepEqual(keys, check_keys) {
+                        log.Info("---------delete interface from interface table--------------")
+                        subOpTblMap[tblName] =make(map[string]db.Value) 
+                        subOpMap[db.ConfigDB] = subOpTblMap
+                        log.Info("--------------subOpMap-----------", subOpMap)
+                        inParams.subOpDataMap[DELETE] = &subOpMap
+                        return nil, nil
+                    }
+                    return subOpTblMap, nil //Just Update
+                }
+                log.Info("Deleting ipv6_use_link_local_only entry ... if this is only entry delete interface from tbl................")
+                subOpMap[db.ConfigDB] = subOpTblMap
+                log.Info("--------------subOpMap-----------", subOpMap)
+                inParams.subOpDataMap[DELETE] = &subOpMap
+                return nil, nil
+            }
+    }
+    log.Info("----------------------end-------------------------")
+    return subOpTblMap, nil
+}
+*/

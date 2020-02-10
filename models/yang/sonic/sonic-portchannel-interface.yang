@@ -65,6 +65,12 @@ module sonic-portchannel-interface {
                         }
                 }
 
+                leaf ipv6_use_link_local_only {
+                    type string; 
+                    description
+                        "Enable/Disable IPv6 on interface";
+                }
+
                 leaf unnumbered {
 					must "((/cmn:operation/cmn:operation != 'CREATE') and (/cmn:operation/cmn:operation != 'UPDATE')) or " +
 						 "not(contains(/sonic-portchannel-interface/PORTCHANNEL_INTERFACE/PORTCHANNEL_INTERFACE_IPADDR_LIST[pch_name=current()/../pch_name]/ip_prefix, '.'))"
